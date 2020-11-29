@@ -1,0 +1,7 @@
+argparse
+datetime
+glfw
+numpy
+PyOpenGL 
+PyOpenGL_accelerate
+tqdm

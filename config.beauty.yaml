@@ -1,0 +1,163 @@
+runs: 1 # For runs with different parameters, copy config below starting
+        # from the line "- outputFoldernameComment: ...".
+
+simulationDuration: 165 # days
+minSimulationStep:  300 # seconds
+                        # agents are effectively "teleporting" between time
+                        # steps. Therefore, if both the distance travelled per
+                        # day and the temporal step are too large, agents will
+                        # teleport through each other without infecting.
+                        # In other words, keep simulation step lower if agent
+                        # speeds increase.
+
+# Agents movement speed (normally distributed), in meters/day
+movementSpeed:
+  mu:    200 # mean
+  sigma: 0.3  # standard deviation coefficient in relation to the mean mu
+
+# Window is rendered until --no-visual option is passed to the program
+window:
+  title: "Pandemic simulation"
+  width: 1500
+  height: 800
+
+# Displayed agents marker size
+markerSize: 0.015 #0.015
+
+# Service/leave intervals
+daysOnDuty : 13 
+daysOffDuty : 8 # Remember to change team rotation offsets
+                # after changing the days!
+
+
+# Teams - groups of agents with the same service/leave curriculum and
+#         spatial restrictions
+teams:
+  civilian:
+    conscripted: No
+    nAgents: 100 #21000
+    homeBox:        # home boxes may overlap or even coincide if needed
+                    # they are just border lines on canvas, from which agents
+                    # are repelled. Agents are spawned within a premises of 
+                    # the home box at the start. 
+      width: 200    # Box dimensions in meters
+      height: 200
+      topLeftPoint: # x and y coordinates of the box anchor
+        x: 0      # ordinate directions are as in Carthesian plane
+        y: 200
+  alpha:
+    conscripted: Yes
+    rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+    nAgents: 30 #1000
+    homeBox:
+      width: 60
+      height: 60
+      topLeftPoint:
+        x: 205
+        y: 200
+  bravo:
+    conscripted: Yes
+    rotationOffset: -7 # service cycle is "shifted" by N days into the past
+    nAgents: 30 #1000
+    homeBox:
+      width: 60
+      height: 60
+      topLeftPoint:
+        x: 205
+        y: 130
+  charlie:
+    conscripted: Yes
+    rotationOffset: -14
+    nAgents: 30 #1000
+    homeBox:
+      width: 60
+      height: 60
+      topLeftPoint:
+        x: 205
+        y: 60
+  # add more teams if necessary . . 
+
+# Effect from soldier's common cafeteria
+sotilaskoti: 
+  allow: Yes
+  openingHours: # from 0 to 23
+    start: 17
+    stop: 19
+  participants:
+    conscripts: 30 # visitors
+    civilians: 3   # personnel
+  box:
+    width: 10
+    height: 120
+    topLeftPoint:
+      x: 270
+      y: 160
+
+###
+# Infection part
+###
+
+initiallyInfected:
+  civiliansFraction:  0.005
+  conscriptsFraction: 0.01
+
+infection:
+  radius: 1.5
+  incubating:
+    daysMin: 2.7 # assuming uniform distribution between min and max values
+    daysMax: 10.3
+    contagious: 0.174 # values below 1 decrease infection transmission chance
+  acute:
+    daysMin: 7 # placeholder values
+    daysMax: 14
+    contagious: 0.174
+  asymptomatic: # acute infection can be asymptomatic with a given chance
+    chance: 0.16
+    contagious: 0.174 # asymptomatic course can lead to less contagiousness
+
+mask:
+  use: Yes
+  effectiveness:
+    wearer: 0.65
+    recipient: 0.80
+  coverage:
+    conscripted: 0.01
+    civilian: 0.78
+
+militaryQuarantine:
+  use: Yes
+  coverage: 0.90
+  effectiveness: 0.95 # Empyric estimate. 
+                      # It appears to have worked IRL really well
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

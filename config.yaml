@@ -1,0 +1,692 @@
+simulationDuration: 200  # 165 days normally, but good to see behind the corner
+outputStatsFor:     165  # The "summary.txt" file would contain statistics from
+                         # day 0 until this day. (165 is a minimum mandatory
+                         # military service period in Finnish Defence Forces).
+
+minSimulationStep:  80   # seconds
+                         # agents are effectively "teleporting" between time
+                         # steps. Therefore, if both the distance travelled per
+                         # day and the temporal step are too large, agents will
+                         # teleport through each other without infecting.
+                         # In other words, keep simulation step lower if agent
+                         # speeds increase.
+
+# Agents movement speed (normally distributed), in meters/day
+movementSpeed:
+  mu:    700 # mean
+  sigma: 0.5  # standard deviation coefficient in relation to the mean mu
+
+###
+# Infection part
+###
+
+initiallyInfected:
+  civiliansFraction:  0.00037
+  conscriptsFraction: 0.00037
+
+infection:
+  radius: 2.0
+  incubating:
+    daysMin: 0.8 # assuming uniform distribution between min and max values
+    daysMax: 3.0
+    contagious: 0.174 # values below 1 decrease infection transmission chance
+  acute:
+    daysMin: 7 # placeholder values
+    daysMax: 14
+    contagious: 0.174
+  asymptomatic: # acute infection can be asymptomatic with a given chance
+    chance: 0.16
+    contagious: 0.174 # asymptomatic course can lead to less contagiousness
+
+mask:
+  use: Yes
+  effectiveness:
+    wearer: 0.0
+    recipient: 0.82 # We haven't found reliable data about cases if only one
+                    # person out of two wears a mask. Therefore, the mask
+                    # effectiveness is currently "merged" in one number.
+  coverage:
+    military: 0.00
+    civilian: 0.78
+
+militaryQuarantine:
+  use: Yes
+  coverage: 0.98 # chance that conscript is put in quarantine provided symptoms
+  effectiveness: 0.95
+
+meetingsAvoided:   # The factor represents the effect from all measures taken
+  military: 0.8    # to limit the interaction between people. The number of 
+  civilian: 0.0    # meetings proportional to this factor would be dropped out
+                   # during the infection transmission computation. Increasing
+                   # this factor is roughly equivalent to decreasing the speed
+                   # of agents movement or decreasing population density within
+                   # all civilian or military areas. 
+                   # e.g. at 0.2: 20% of meetings would randomly not happen. 
+                   # The factor is taken into account during the 
+                   # "outputProbabilities.py" stage and serves as a fine-tuning
+                   # instrument to control the speed of the infection spread.
+
+# Effect from soldier's common cafeteria
+sotilaskoti: 
+  allow: Yes
+  openingHours: # from 0 to 23
+    start: 17
+    stop: 19
+  participants:
+    conscripts: 30 # visitors
+    civilians: 3   # personnel
+  box:
+    width: 10 # queue
+    height: 100
+    topLeftPoint:
+      x: 5100+220*7+50
+      y: 2550
+
+###
+# Visualiation part (for meetings generation)
+###
+
+# Window is rendered until --no-visual option is passed to the program
+window:
+  title: "Pandemic simulation"
+  width: 1200
+  height: 800
+
+# Displayed agents marker size
+markerSize: 0.005 #0.015
+
+# Service/leave intervals
+daysOnDuty : 5
+daysOffDuty : 2  # Remember to change team rotation offsets
+                 # after changing these days!
+
+dontGoOffDuty: 0.2 # fraction of conscripts that decided service over leave
+                   # and don't go on holiday. This has been common at the times
+                   # of short VLV holiday weekends with around 20% of
+                   # conscripts not going off duty.
+
+figTitleEnd: " at the 4 service 2 leave weeks, half of conscripts wear a mask"
+
+##
+# Teams - groups of agents with the same service/leave curriculum and
+##        spatial restrictions
+teams:
+  civilian:
+    conscripted: No
+    nAgents: 10000
+    homeBox:        # home boxes may overlap or even coincide if needed
+                    # they are just border lines on canvas, from which agents
+                    # are repelled. Agents are spawned within a premises of 
+                    # the home box at the start. 
+      width: 5000   # Box dimensions in meters
+      height: 5000
+      topLeftPoint: # x and y coordinates of the box anchor
+        x: 0      # ordinate directions are as in Carthesian plane
+        y: 5000
+  vlv_0:
+    conscripted: Yes
+    rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+    nAgents: 114
+    homeBox:
+      width: 218
+      height: 654
+      topLeftPoint:
+        x: 5100+220*0
+        y: 5000
+  vlv_1:
+    conscripted: Yes
+    rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+    nAgents: 114
+    homeBox:
+      width: 218
+      height: 654
+      topLeftPoint:
+        x: 5100+220*1
+        y: 5000
+  vlv_2:
+    conscripted: Yes
+    rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+    nAgents: 114
+    homeBox:
+      width: 218
+      height: 654
+      topLeftPoint:
+        x: 5100+220*2
+        y: 5000
+  vlv_3:
+    conscripted: Yes
+    rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+    nAgents: 114
+    homeBox:
+      width: 218
+      height: 654
+      topLeftPoint:
+        x: 5100+220*3
+        y: 5000
+  vlv_4:
+    conscripted: Yes
+    rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+    nAgents: 114
+    homeBox:
+      width: 218
+      height: 654
+      topLeftPoint:
+        x: 5100+220*4
+        y: 5000
+  vlv_5:
+    conscripted: Yes
+    rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+    nAgents: 114
+    homeBox:
+      width: 218
+      height: 654
+      topLeftPoint:
+        x: 5100+220*5
+        y: 5000
+  vlv_6:
+    conscripted: Yes
+    rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+    nAgents: 114
+    homeBox:
+      width: 218
+      height: 654
+      topLeftPoint:
+        x: 5100+220*6
+        y: 5000
+  vlv_7:
+    conscripted: Yes
+    rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+    nAgents: 114
+    homeBox:
+      width: 218
+      height: 654
+      topLeftPoint:
+        x: 5100+220*0
+        y: 5000-656
+  vlv_8:
+    conscripted: Yes
+    rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+    nAgents: 114
+    homeBox:
+      width: 218
+      height: 654
+      topLeftPoint:
+        x: 5100+220*1
+        y: 5000-656
+  vlv_9:
+    conscripted: Yes
+    rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+    nAgents: 114
+    homeBox:
+      width: 218
+      height: 654
+      topLeftPoint:
+        x: 5100+220*2
+        y: 5000-656
+  vlv_a:
+    conscripted: Yes
+    rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+    nAgents: 114
+    homeBox:
+      width: 218
+      height: 654
+      topLeftPoint:
+        x: 5100+220*3
+        y: 5000-656
+  vlv_b:
+    conscripted: Yes
+    rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+    nAgents: 114
+    homeBox:
+      width: 218
+      height: 654
+      topLeftPoint:
+        x: 5100+220*4
+        y: 5000-656
+  vlv_c:
+    conscripted: Yes
+    rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+    nAgents: 114
+    homeBox:
+      width: 218
+      height: 654
+      topLeftPoint:
+        x: 5100+220*5
+        y: 5000-656
+  vlv_d:
+    conscripted: Yes
+    rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+    nAgents: 114
+    homeBox:
+      width: 218
+      height: 654
+      topLeftPoint:
+        x: 5100+220*6
+        y: 5000-656
+   
+# when uncommenting make sure the number of spaces before group name is two.
+# i.e. replace "# " with "  "
+# alpha_0:
+#   conscripted: Yes
+#   rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*0
+#       y: 5000
+# alpha_1:
+#   conscripted: Yes
+#   rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*1
+#       y: 5000
+# alpha_2:
+#   conscripted: Yes
+#   rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*2
+#       y: 5000
+# alpha_3:
+#   conscripted: Yes
+#   rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*3
+#       y: 5000
+# alpha_4:
+#   conscripted: Yes
+#   rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*4
+#       y: 5000
+# alpha_5:
+#   conscripted: Yes
+#   rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*5
+#       y: 5000
+# alpha_6:
+#   conscripted: Yes
+#   rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*6
+#       y: 5000
+# alpha_7:
+#   conscripted: Yes
+#   rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*0
+#       y: 5000-220
+# alpha_8:
+#   conscripted: Yes
+#   rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*1
+#       y: 5000-220
+# alpha_9:
+#   conscripted: Yes
+#   rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*2
+#       y: 5000-220
+# alpha_a:
+#   conscripted: Yes
+#   rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*3
+#       y: 5000-220
+# alpha_b:
+#   conscripted: Yes
+#   rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*4
+#       y: 5000-220
+# alpha_c:
+#   conscripted: Yes
+#   rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*5
+#       y: 5000-220
+# alpha_d:
+#   conscripted: Yes
+#   rotationOffset: 0 # service/leave pattern. Keep all zero for "VLV" regime
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*6
+#       y: 5000-220
+# bravo_0:
+#   conscripted: Yes
+#   rotationOffset: -14 # service cycle is "shifted" by N days into the past
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*0
+#       y: 5000-220*2-1080
+# bravo_1:
+#   conscripted: Yes
+#   rotationOffset: -14 # service cycle is "shifted" by N days into the past
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*1
+#       y: 5000-220*2-1080
+# bravo_2:
+#   conscripted: Yes
+#   rotationOffset: -14 # service cycle is "shifted" by N days into the past
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*2
+#       y: 5000-220*2-1080
+# bravo_3:
+#   conscripted: Yes
+#   rotationOffset: -14 # service cycle is "shifted" by N days into the past
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*3
+#       y: 5000-220*2-1080
+# bravo_4:
+#   conscripted: Yes
+#   rotationOffset: -14 # service cycle is "shifted" by N days into the past
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*4
+#       y: 5000-220*2-1080
+# bravo_5:
+#   conscripted: Yes
+#   rotationOffset: -14 # service cycle is "shifted" by N days into the past
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*5
+#       y: 5000-220*2-1080
+# bravo_6:
+#   conscripted: Yes
+#   rotationOffset: -14 # service cycle is "shifted" by N days into the past
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*6
+#       y: 5000-220*2-1080
+# bravo_7:
+#   conscripted: Yes
+#   rotationOffset: -14 # service cycle is "shifted" by N days into the past
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*0
+#       y: 5000-220*2-1080-220
+# bravo_8:
+#   conscripted: Yes
+#   rotationOffset: -14 # service cycle is "shifted" by N days into the past
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*1
+#       y: 5000-220*2-1080-220
+# bravo_9:
+#   conscripted: Yes
+#   rotationOffset: -14 # service cycle is "shifted" by N days into the past
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*2
+#       y: 5000-220*2-1080-220
+# bravo_a:
+#   conscripted: Yes
+#   rotationOffset: -14 # service cycle is "shifted" by N days into the past
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*3
+#       y: 5000-220*2-1080-220
+# bravo_b:
+#   conscripted: Yes
+#   rotationOffset: -14 # service cycle is "shifted" by N days into the past
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*4
+#       y: 5000-220*2-1080-220
+# bravo_c:
+#   conscripted: Yes
+#   rotationOffset: -14 # service cycle is "shifted" by N days into the past
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*5
+#       y: 5000-220*2-1080-220
+# bravo_d:
+#   conscripted: Yes
+#   rotationOffset: -14 # service cycle is "shifted" by N days into the past
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*6
+#       y: 5000-220*2-1080-220
+# charlie_0:
+#   conscripted: Yes
+#   rotationOffset: -28
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*0
+#       y: 1080+220*4
+# charlie_1:
+#   conscripted: Yes
+#   rotationOffset: -28
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*1
+#       y: 1080+220*4
+# charlie_2:
+#   conscripted: Yes
+#   rotationOffset: -28
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*2
+#       y: 1080+220*4
+# charlie_3:
+#   conscripted: Yes
+#   rotationOffset: -28
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*3
+#       y: 1080+220*4
+# charlie_4:
+#   conscripted: Yes
+#   rotationOffset: -28
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*4
+#       y: 1080+220*4
+# charlie_5:
+#   conscripted: Yes
+#   rotationOffset: -28
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*5
+#       y: 1080+220*4
+# charlie_6:
+#   conscripted: Yes
+#   rotationOffset: -28
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*6
+#       y: 1080+220*4
+# charlie_7:
+#   conscripted: Yes
+#   rotationOffset: -28
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*0
+#       y: 1080+220*3
+# charlie_8:
+#   conscripted: Yes
+#   rotationOffset: -28
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*1
+#       y: 1080+220*3
+# charlie_9:
+#   conscripted: Yes
+#   rotationOffset: -28
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*2
+#       y: 1080+220*3
+# charlie_a:
+#   conscripted: Yes
+#   rotationOffset: -28
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*3
+#       y: 1080+220*3
+# charlie_b:
+#   conscripted: Yes
+#   rotationOffset: -28
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*4
+#       y: 1080+220*3
+# charlie_c:
+#   conscripted: Yes
+#   rotationOffset: -28
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*5
+#       y: 1080+220*3
+# charlie_d:
+#   conscripted: Yes
+#   rotationOffset: -28
+#   nAgents: 38
+#   homeBox:
+#     width: 218
+#     height: 218
+#     topLeftPoint:
+#       x: 5100+220*6
+#       y: 1080+220*3
+  
+  # add more teams if necessary . . 
+
+
