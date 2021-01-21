@@ -1,0 +1,397 @@
+figTitle:
+  freeFormTag: "50% asymptomatic cases"
+  velocityInfo: no
+  meetingsNumber: no
+
+# Service/leave intervals # Standard: 5+2 (vlv), 13+8, 27+15, 20+8 (4 groups)
+daysOnDuty : 27
+daysOffDuty : 15  # Remember to change team rotation offsets
+                 # after changing these days!
+
+dontGoOffDuty: 0.0 # fraction of conscripts that decided service over leave
+                   # and don't go on holiday. This has been common at the times
+                   # of short VLV holiday weekends with around 20% of
+                   # conscripts not going off duty.
+
+simulationDuration: 200  # 165 days normally, but good to see behind the corner
+outputStatsFor:     200  # The "summary.txt" file would contain statistics from
+                         # day 0 until this day. (165 is a minimum mandatory
+                         # military service period in Finnish Defence Forces).
+
+minSimulationStep:  80   # seconds
+                         # agents are effectively "teleporting" between time
+                         # steps. Therefore, if both the distance travelled per
+                         # day and the temporal step are too large, agents will
+                         # teleport through each other without infecting.
+                         # In other words, keep simulation step lower if agent
+                         # speeds increase.
+
+# Agents movement speed (normally distributed), in meters/day
+movementSpeed:
+  mu:    800 # mean
+  sigma: 2.0 # standard deviation coefficient in relation to the mean mu
+
+###
+# Infection part
+###
+
+initiallyInfected:
+  civiliansFraction:  0.00037
+  conscriptsFraction: 0.00037
+
+# src 1 https://www.ecdc.europa.eu/en/covid-19/latest-evidence/transmission
+# src 2 https://www.ecdc.europa.eu/en/covid-19/latest-evidence/clinical
+# src 3 https://www.who.int/news-room/commentaries/detail/transmission-of-sars-cov-2-implications-for-infection-prevention-precautions
+infection:
+  radius: 2.0 # src 1 [71, 72] 
+  incubating:
+    daysMin: 5 # src 1 [44,45]
+    daysMax: 5 # assuming uniform distribution between min and max values
+    contagious: 0.0 # i.e. infection transmission chance during the given
+                      # disease state.
+  preSymptomatic: # Some diseases have a stage between incubating and acute 
+    # when the person is already contageous but has not developed any symptoms
+    # yet. If no data is present, leave values as zeros. 
+    daysMin: 0.4 # src 1 [49] 
+    daysMax: 1.0
+    contagious: 0.174 # src 1 [30,42]
+  acute:
+    daysMin: 5 # src 2 [31]
+    daysMax: 15
+    contagious: 0.174
+  asymptomatic: # acute infection can be asymptomatic with a given chance
+    chance: 0.5 # src 3 [81]
+    contagious: 0.174 # asymptomatic course can lead to less contagiousness
+
+mask:
+  use: Yes
+  effectiveness:
+    wearer: 0.0
+    recipient: 0.62 # We haven't found reliable data about cases if only one
+    # person out of two wears a mask. Therefore, the mask rx and tx 
+    # effectiveness is currently "merged" in one number.
+    # https://www.nature.com/articles/d41586-020-02801-8 [7]
+  coverage:
+    military: 0.00
+    civilian: 0.70 # https://www.hs.fi/politiikka/art-2000007630258.html
+                   # plus empirical evidence
+
+civilianSelfQuarantine:
+  use: Yes
+  chanceToEnterIfExposed: 0.24 # This is an empirical estimate of the chance 
+    # that a random civilian person would enter a self-quarantine. This happens 
+    # if (1) she has an information about being exposed (e.g. by using a 
+    # specialized application for tracking contacts with people revealed to be
+    # infected) and (2) is willing to enter such self-quarantine. E.g. 0.3*0.8
+  chenceToEnterIfSymptoms: 0.9 # Again, an empirical estimate of someone 
+    # entering a self-quarantine if she starts to experience flu symptoms. 
+  effectiveness: 0.9 # Chance of infection transmission from/to this person
+                     # is decreased by this amount (empirical estimate).
+militaryQuarantine: # The military quarantine is done much more professionally
+    # than a potential civilian self-quarantine, hence all effects on the
+    # infection transmission chance are empirically estimated as high.
+  use: Yes
+  chanceToEnterIfExposed: 0.90
+  chenceToEnterIfSymptoms: 0.98
+  effectiveness: 0.95
+
+meetingsAvoided:   # The factor represents the effect from all measures taken
+  military: 0.0    # to limit the interaction between people. The number of 
+  civilian: 0.0    # meetings proportional to this factor would be dropped out
+                   # during the infection transmission computation. Increasing
+                   # this factor is roughly equivalent to decreasing the speed
+                   # of agents movement or decreasing population density within
+                   # all civilian or military areas. 
+                   # e.g. at 0.2: 20% of meetings would randomly not happen. 
+                   # The factor is taken into account during the 
+                   # "outputProbabilities.py" stage and serves as a fine-tuning
+                   # instrument to control the speed of the infection spread.
+
+# Effect from soldier's common cafeteria
+sotilaskoti: 
+  allow: Yes
+  openingHours: # from 0 to 23
+    start: 17
+    stop: 19
+  participants:
+    conscripts: 30 # visitors
+    civilians: 3   # personnel
+  box:
+    width: 10 # queue
+    height: 100
+    topLeftPoint:
+      x: 4045
+      y: 1950
+
+###
+# Visualiation part (for meetings generation)
+###
+
+# Window is rendered until --no-visual option is passed to the program
+window:
+  title: "Pandemic simulation"
+  width: 1600
+  height: 800
+
+# Displayed agents marker size
+markerSize: 0.005 #0.015
+
+figTitleEnd: ""
+
+##
+# Teams - groups of agents with the same service/leave curriculum and
+##        spatial restrictions
+teams:
+  civilian:
+    conscripted: No
+    nAgents: 10000
+    homeBox:        # home boxes may overlap or even coincide if needed
+                    # they are just border lines on canvas, from which agents
+                    # are repelled. Agents are spawned within a premises of 
+                    # the home box at the start. 
+      width: 4000   # Box dimensions in meters
+      height: 4000
+      topLeftPoint: # x and y coordinates of the box anchor
+        x: 0      # ordinate directions are as in Carthesian plane
+        y: 4000
+
+# when uncommenting make sure the number of spaces before group name is two.
+# i.e. replace "# " with "  "
+
+###
+#  Config for 1 group: VLV (all in the same group, weekends are leave)
+###
+
+# VLV case: boxes are "merged" since A, B, and C division does not exist there.
+
+# vlv:
+#  conscripted: Yes
+#  rotationOffset: 0
+#  nAgents: 114
+#  homeBox:
+#    width: 92.5
+#    height: 92.5*3
+#    topLeftPoint:
+#      x: 5100
+#      y: 5000
+#  repeat:
+#      times: 14
+#      spatialSeparation: (92.5+10)
+
+###
+#  Config for 2 groups: Alpha and Bravo (a synthetic case for N_groups testing)
+###
+
+# alpha:
+#   conscripted: Yes
+#   rotationOffset: 0
+#   nAgents: 57
+#   homeBox:
+#     width: 377
+#     height: 378
+#     topLeftPoint:
+#       x: 5100
+#       y: 5000
+#   repeat:
+#     times: 14
+#     spatialSeparation: (377+10)
+  
+# bravo:
+#   conscripted: Yes
+#   rotationOffset: -14
+#   nAgents: 57
+#   homeBox:
+#     width: 377
+#     height: 378
+#     topLeftPoint:
+#       x: 5100
+#       y: 5000-(378+10)
+#   repeat:
+#     times: 14
+#     spatialSeparation: (377+10)
+  
+
+###
+#  Config for 3 groups: Alpha, Bravo and Charlie. IRL case
+###
+
+  alpha:
+    conscripted: Yes
+    rotationOffset: 0
+    nAgents: 38
+    homeBox:
+      width: 246.6
+      height: 246.6
+      topLeftPoint:
+        x: 4100
+        y: 4000
+    repeat:
+        times: 14
+        spatialSeparation: (246.6+10)
+
+  bravo:
+    conscripted: Yes
+    rotationOffset: -14
+    nAgents: 38
+    homeBox:
+      width: 246.6
+      height: 246.6
+      topLeftPoint:
+        x: 4100
+        y: 4000-(246.6+10)
+    repeat:
+        times: 14
+        spatialSeparation: (246.6+10)
+
+  charlie:
+    conscripted: Yes
+    rotationOffset: -28
+    nAgents: 38
+    homeBox:
+      width: 246.6
+      height: 246.6
+      topLeftPoint:
+        x: 4100
+        y: 4000-(246.6+10)*2
+    repeat:
+        times: 14
+        spatialSeparation: (246.6+10)
+
+###
+#  Config for 4 groups: Alpha, Bravo, Charlie and Delta
+###
+
+# alpha:
+#   conscripted: Yes
+#   rotationOffset: 0
+#   nAgents: 38
+#   homeBox:
+#     width: 308
+#     height: 308
+#     topLeftPoint:
+#       x: 5100
+#       y: 5000
+#   repeat:
+#       times: 10
+#       spatialSeparation: (308+10)
+
+# bravo:
+#   conscripted: Yes
+#   rotationOffset: -7
+#   nAgents: 38
+#   homeBox:
+#     width: 308
+#     height: 308
+#     topLeftPoint:
+#       x: 5100
+#       y: 5000-(308+10)
+#   repeat:
+#       times: 11
+#       spatialSeparation: (308+10)
+
+# charlie:
+#   conscripted: Yes
+#   rotationOffset: -14
+#   nAgents: 38
+#   homeBox:
+#     width: 308
+#     height: 308
+#     topLeftPoint:
+#       x: 5100
+#       y: 5000-(308+10)*2
+#   repeat:
+#       times: 10
+#       spatialSeparation: (308+10)
+
+# delta:
+#   conscripted: Yes
+#   rotationOffset: -21
+#   nAgents: 38
+#   homeBox:
+#     width: 308
+#     height: 308
+#     topLeftPoint:
+#       x: 5100
+#       y: 5000-(308+10)*3
+#   repeat:
+#       times: 11
+#       spatialSeparation: (308+10)
+
+###
+#  Config for 5 groups: Alpha, Bravo, Charlie, Delta and Echo
+###
+
+# alpha:
+#   conscripted: Yes
+#   rotationOffset: 0
+#   nAgents: 23
+#   homeBox:
+#     width: 239
+#     height: 239
+#     topLeftPoint:
+#       x: 5100
+#       y: 5000
+#   repeat:
+#       times: 14
+#       spatialSeparation: (239+10)
+
+# bravo:
+#   conscripted: Yes
+#   rotationOffset: -7
+#   nAgents: 23
+#   homeBox:
+#     width: 239
+#     height: 239
+#     topLeftPoint:
+#       x: 5100
+#       y: 5000-(239+10)
+#   repeat:
+#       times: 14
+#       spatialSeparation: (239+10)
+
+# charlie:
+#   conscripted: Yes
+#   rotationOffset: -14
+#   nAgents: 23
+#   homeBox:
+#     width: 239
+#     height: 239
+#     topLeftPoint:
+#       x: 5100
+#       y: 5000-(239+10)*2
+#   repeat:
+#       times: 14
+#       spatialSeparation: (239+10)
+
+# delta:
+#   conscripted: Yes
+#   rotationOffset: -21
+#   nAgents: 23
+#   homeBox:
+#     width: 239
+#     height: 239
+#     topLeftPoint:
+#       x: 5100
+#       y: 5000-(239+10)*3
+#   repeat:
+#       times: 14
+#       spatialSeparation: (239+10)
+
+# echo:
+#   conscripted: Yes
+#   rotationOffset: -28
+#   nAgents: 22
+#   homeBox:
+#     width: 239
+#     height: 239
+#     topLeftPoint:
+#       x: 5100
+#       y: 5000-(239+10)*4
+#   repeat:
+#       times: 14
+#       spatialSeparation: (239+10)
+
+# add more teams if necessary . . 
+
+
+

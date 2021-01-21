@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-This file contains functions called during the simulation time step update.
+This file contains functions 
 """
+from llist import dllist
 import numpy as np
 
 def rotate_teams(entities, stay_chance, eval_time, dt):
@@ -140,7 +141,73 @@ def increment_agent_positions(agents):
         agent.y = y + agent.dy;
 
 
-def detect_meetings(agents, iXY, eval_time, config, visualize):
+def x_sort(dl):
+    """
+    Sorts the doubly linked list of agents (dl) along the x-ordinate
+    """
+    n = dl.nodeat(0) # node
+    nn = n.next      # next node
+    
+    while nn:
+        
+        n = nn
+        nn = n.next
+        nb = n.prev # previous node
+        
+        dis = False # disordered: if neighbour pair of agents is in the wrong
+                    #      order. By default innocent until found guilty.
+        
+        while True:
+            
+            if not nb: # if the list start is reached, just insert there
+                e = dl.remove(n) # e: element stored within the node
+                dl.appendleft(e)
+                break
+            
+            if not dis: # if things are already ok 
+                if nb.value.x < n.value.x:
+                    break
+            
+            dis = True
+            
+            if nb.value.x < n.value.x: # proper position is found, insert here
+                e = dl.remove(n)
+                dl.insert(e, nb.next)
+                break
+            
+            nb = nb.prev
+
+    return dl
+
+
+def initial_sort(agents):
+    """
+    Perform an initial sort of agents along the x-ordinate (later such sorted
+    list is needed for a bit faster neighbours finding computation). Since
+    agents x-positions are initially randomly distributed, an off-the-shelf
+    numpy quicksort appears to be an optimal choice. 
+    Args:
+        agents: list with references to (spatial) agents instances
+    Out:
+        dl: sorted doubly linked list with references to agents instances
+    """
+    
+    IX = [] # list of indexes and positions along the x-ordinate
+    
+    for agent in agents: IX.append([agent.idx, agent.x])
+        
+    IXs = np.argsort(IX, axis=0) # sorted according to x-ordinate positions
+    
+    Is = IXs[:,1] # leave just indices
+    
+    agents_x_sorted = np.array(agents)[Is]
+    
+    dl = dllist(agents_x_sorted) # to doubly linked list
+    
+    return dl
+
+
+def detect_meetings(agents_x_sorted, eval_time, config, visualize):
     """
     Args:
         agents: list with agents objects
@@ -153,66 +220,78 @@ def detect_meetings(agents, iXY, eval_time, config, visualize):
         connection. 
     """
     if visualize:
-        for agent in agents:
+        for agent in agents_x_sorted:
             agent.color = (1.0, 1.0, 1.0, 0.0)
     
-    
-    for i, agent in enumerate(agents):
-        
-        assert(i==agent.idx)
-        
-        
-        
-        iXY[i] = (agent.idx, agent.x, agent.y)
-    
-    # sort along X-axis
-    # resulting shape: [original index, sorted x, y]
-    iXsY = iXY[iXY['x'].argsort()] 
     
     rad = config["infection"]["radius"]
     
     meets_curr = dict()
     
-    for k in range(len(agents)):
+    n = agents_x_sorted.nodeat(0) # node (contains the reference agent)
+    nn = n.next                   # next node (contains the following agent)
+    
+    while nn:
         
         nears = []
         
-        caret = k-1 
-        while(caret >= 0):
+        n = nn
+        nn = n.next
+        nb = n.prev
+        
+        while nb:
             
-            dx = iXsY['x'][k] - iXsY['x'][caret]
+            dx = n.value.x - nb.value.x
             
             if dx < rad:
                 
-                dy = iXsY['y'][k] - iXsY['y'][caret]
+                dy = n.value.y - nb.value.y
                 
-                dist = np.sqrt(dx*dx + dy*dy)
-            
+                dist = (dx*dx + dy*dy)**0.5
+                
                 if dist < rad:
                     
-                    nears.append(iXsY['idx'][caret])
-            else: 
+                    nears.append(nb.value)
+            else:
                 break
             
-            caret -= 1
-        
-        
-        
-        # leave only the ones within a Euclidean circle        
-        color = (1.0, 0.0, 0.051, 1.0)
-        reference_agent_id = iXsY['idx'][k]
-        
-        if visualize:
-            if nears: agents[reference_agent_id].color = color
+            nb = nb.prev
         
         for near in nears:
             
-            link  = frozenset({reference_agent_id, near}) # who with who
-            place = agents[reference_agent_id].allowed_box.name  # where
+            link  = frozenset({n.value.idx, near.idx}) # who with who
+            place = n.value.allowed_box.name # where
             
             meets_curr[link] = place
             
-            agents[near].color = color
-        
+        # paint agents within a Euclidean circle red
+        if visualize:
+            color = (1.0, 0.0, 0.051, 1.0)
+            if nears: n.value.color = color
+            
+            for near in nears:
+                near.color = color
+            
+            
     return meets_curr
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

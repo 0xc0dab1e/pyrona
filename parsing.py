@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-This file contains a helper function to identify meeting table / config pairs
-from the generated files saved in output/ folder. 
+
 """
 import os
 
@@ -38,4 +37,25 @@ def find_table_config_pairs(tag, paths):
                         "tag"       : a_tag}
                     
                     path_pairs.append(path_pair)
+    
+    # alphabetically sort pairs according to the user provided tag name
+    # (allows adding stat lines to all_stats.csv in sensible order)
+    path_pairs = sorted(path_pairs, key=lambda entry: entry['tag'])
+    
     return path_pairs
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

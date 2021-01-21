@@ -1,7 +1,12 @@
 argparse
 datetime
 glfw
+llist
+matplotlib
 numpy
+pandas
+pyyaml
 PyOpenGL 
 PyOpenGL_accelerate
+seaborn
 tqdm

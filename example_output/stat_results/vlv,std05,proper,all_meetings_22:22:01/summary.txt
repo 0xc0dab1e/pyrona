@@ -1,6 +1,0 @@
-Fraction of conscripts that have had the infection( within the first 165 days): 
-76.7%
-Maximum fraction of simultaneously infected conscripts( within the first 165 days): 
-29.9%
-Out of which symptomatic: 
-25.1%

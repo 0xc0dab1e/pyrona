@@ -38,10 +38,10 @@ class Box():
         """
         self.name = name
         
-        self.left   = eval(str(topLeftPoint["x"]))
-        self.top    = eval(str(topLeftPoint["y"]))
-        self.right  = eval(str(topLeftPoint["x"])) + width
-        self.bottom = eval(str(topLeftPoint["y"])) - height
+        self.left   = topLeftPoint["x"]
+        self.top    = topLeftPoint["y"]
+        self.right  = topLeftPoint["x"] + width
+        self.bottom = topLeftPoint["y"] - height
 
 # spatial agent is used during meetings table generation phase
 class SpatialAgent():
@@ -49,7 +49,7 @@ class SpatialAgent():
                  color=(1.0, 1.0, 1.0, 1.0)):
         
         self.idx = idx
-
+        
         self.x = np.random.randint(allowed_box.left, allowed_box.right)
         self.y = np.random.randint(allowed_box.bottom, allowed_box.top)
         
@@ -97,6 +97,9 @@ def init_infect(agents, config):
         # for each infected there should be proportional amount incubating
         inc_frac = inc_dur/inf_dur * inf_frac
         
+        # incubating people number should not exceed the whole population
+        inc_frac = min(inc_frac, 1.0-inf_frac)
+        
         # people were infected sometime in the past when the simulation began
         inc_ts = np.random.uniform(-inc_dur, 0)
         inf_ts = np.random.uniform(-inf_dur, 0)
@@ -107,31 +110,36 @@ def init_infect(agents, config):
 
 class Infection():
     
-    def __init__(self, inc_dur, inf_dur,
-                 asympt_p, mask_p, quar_p,
-                 incub_trx, sympt_trx, asympt_trx,
+    def __init__(self, inc_dur, psy_dur, inf_dur, asymt_p, 
+                 mask_p, quar_s_p, quar_x_p,
+                 incub_trx, psymt_trx, sympt_trx, asymt_trx,
                  mask_eff_tx, mask_eff_rx, quar_eff):
         
-        # incubation and infection period durations, seconds
-        self.inc_dur = inc_dur * 24*60*60   
-        self.inf_dur = inf_dur * 24*60*60   
+        # incubation, pre-symptomatic, and infection period durations, seconds
+        self.inc_dur = inc_dur * 24*60*60
+        self.psy_dur = psy_dur * 24*60*60
+        self.inf_dur = inf_dur * 24*60*60
         
         # small bits of infection yielded from meetings with another agents
         # incubation bits transition to infection when the time comes
         self.parts_inc = dict() #
+        self.parts_psy = dict() #
         self.parts_inf = dict() #
-        self.parts_imm = dict() #   key:timestamp, val: p (probability)
+        self.parts_imm = dict() # key:timestamp, val: p (probability)
         
         # infection transfer probabilities for incubating and acute stages
         self.incub_trx  =  incub_trx
+        self.psymt_trx  =  psymt_trx
         self.sympt_trx  =  sympt_trx
-        self.asympt_trx = asympt_trx
+        self.asymt_trx  =  asymt_trx
         
         # probabilities of being:
-        self.asympt_p = asympt_p # asymptomatic
-        self.mask_p = mask_p     # wearing mask
-        self.quar_p = quar_p     # quarrantined (applies only if agent is
-                                 # concripted _and_ symptomatically infected)
+        self.asymt_p = asymt_p   # asymptomatic
+        self.mask_p  =  mask_p   # wearing mask
+        
+        # quarantine after being: 
+        self.quar_x_p = quar_x_p # merely exposed 
+        self.quar_s_p = quar_s_p # develping symptoms
         
         # infection transfer countermeasures effectiveness
         self.mask_eff_tx = mask_eff_tx # from   this infection to another
@@ -142,34 +150,40 @@ class Infection():
         
         met_inf = met_agent.infection
         
-        # total probabilities for agent to be incunating or acute infected
+        # total probabilities for agent to be incubating or acute infected
         # are sums of 'infection bits' transferred to this agent over time
         inc_p = sum(self.parts_inc.values())
+        psy_p = sum(self.parts_psy.values())
         inf_p = sum(self.parts_inf.values())
         
         # mask wearing modifiers. Chance that there is no mask at all, 
-        # plus chance that mask passes infection. 
+        # plus chance that mask passes infection.
         mask_mod = (1 - self.mask_p) + self.mask_p * (1 - self.mask_eff_tx)
-        quar_mod = (1 - self.quar_p) + self.quar_p * (1 - self.quar_eff)
+        
+        # quarantine modifiers. Separate for symptomatic and asymptomatic cases
+        quar_x_mod = (1 - self.quar_x_p) + self.quar_x_p * (1 - self.quar_eff)
+        quar_s_mod = (1 - self.quar_s_p) + self.quar_s_p * (1 - self.quar_eff)
         
         # probability of infection being symptomatic and not
-        asympt_p =     self.asympt_p
-        sympt__p = 1 - self.asympt_p
+        asymt_p =     self.asymt_p
+        sympt_p = 1 - self.asymt_p
         
         # bare probabilities of having the infection in three forms:
         # incubating, asymptmatic and symptomatic
-        p_from_inc    = inc_p
-        p_from_asympt = inf_p * asympt_p
-        p_from__sympt = inf_p * sympt__p
-
-        # transition probability modifiers for each infection form applied
-        p_from_inc    *= self.incub_trx  * mask_mod
-        p_from_asympt *= self.asympt_trx * mask_mod
-        p_from__sympt *= self.sympt_trx  * mask_mod * quar_mod
+        p_from_inc   = inc_p
+        p_from_psymt = psy_p
+        p_from_asymt = inf_p * asymt_p
+        p_from_sympt = inf_p * sympt_p
+        
+        # transmitted infection decrease due to mask and quarantine measures
+        p_from_inc   *= self.incub_trx * mask_mod * quar_x_mod
+        p_from_psymt *= self.psymt_trx * mask_mod * quar_x_mod
+        p_from_asymt *= self.asymt_trx * mask_mod * quar_x_mod
+        p_from_sympt *= self.sympt_trx            * quar_s_mod
         
         # total "outgoing" or "dispatched" probability of infecting the 
         # other party
-        p_disp = p_from_inc + p_from_asympt + p_from__sympt
+        p_disp = p_from_inc + p_from_psymt + p_from_asymt + p_from_sympt
         
         # the method modifies the infection bits of the other party
         # directy. Therefore, it needs to take into account the other party
@@ -179,25 +193,29 @@ class Infection():
         met_mask_mod  = met_nomask_p + met_mask_pass
         
         # transferred infection decreases p of other party being healthy
-        met_inc_p = sum(met_inf.parts_inc.values())
-        met_inf_p = sum(met_inf.parts_inf.values())
-        met_imm_p = sum(met_inf.parts_imm.values())
+        met_inc_p = sum(met_inf.parts_inc.values()) # incubating
+        met_psy_p = sum(met_inf.parts_psy.values()) # pre-symptomatic
+        met_inf_p = sum(met_inf.parts_inf.values()) # acute infection
+        met_imm_p = sum(met_inf.parts_imm.values()) # immune
         
-        met_hlty_p = 1 - (met_inc_p + met_inf_p + met_imm_p)
+        met_hlty_p = 1 - (met_inc_p + met_psy_p + met_inf_p + met_imm_p)
+        
+        assert -0.0001 <= met_hlty_p < 1.0001, met_hlty_p
         
         p_recv = p_disp * met_hlty_p * met_mask_mod
         
-        #   add an appropriate incubation probability to the other agent
+        # add an appropriate incubation probability to the other agent
         met_inf.parts_inc[eval_time] = p_recv
         
-        #   record statistics
+        # record statistics
         met_agent.infection_transmitted += p_recv
     
     
     def update(self, eval_time, agent, place, config):
         
         """
-        Dynamic mask usage probability update   based on which area agent is in.
+        Dynamic mask usage probability update based on which area agent is in.
+        
         """
         if agent.conscripted:
             
@@ -209,7 +227,8 @@ class Infection():
                 self.mask_p = config['mask']['coverage']['military']
         
         """
-        1) Transfer developed incubation parts to infection ones
+        1) Transfer developed incubation parts to pre-symptomatic ones
+    
         """
         inc_ts = self.parts_inc.keys() # incubation start timestamps
         
@@ -221,11 +240,31 @@ class Infection():
             
             if eval_time > inc_end:
                 
-                dev_inf = self.parts_inc.pop(inc_t) # developed infection
+                dev_psy = self.parts_inc.pop(inc_t) # developed infection
                                                     # probability bit
-                self.parts_inf[inc_end] = dev_inf
+                self.parts_psy[inc_end] = dev_psy
+        
         """
-        2) Delete outdated infection parts
+        2) Transfer developed pre-symptomatic parts to infection ones
+    
+        """
+        psy_ts = self.parts_psy.keys()
+        
+        psy_ts = list(psy_ts)
+        
+        for psy_t in psy_ts:
+            
+            psy_end = psy_t + self.psy_dur
+            
+            if eval_time > psy_end:
+                
+                dev_psy = self.parts_psy.pop(psy_t)
+                
+                self.parts_inf[psy_end] = dev_psy
+        
+        """
+        2) Transfer developed infection parts to immunity ones
+    
         """
         inf_ts = self.parts_inf.keys()
         
@@ -251,57 +290,86 @@ def generate_spatial_entities(config):
     # each team has a home box and some number of agents to spawn
     for team_name, team_conf in config["teams"].items():
         
-        # generate boxes
-        box = Box(team_name, **team_conf["homeBox"]) # box stores its name
-        boxes[team_name] = box                 # and is stored by its name
-                               
+        # team with the same parameters may be
+        # repeated several times in separate boxes
         
-        # populate agents
-        team_agent_ids = []
+        reps = team_conf.get('repeat',  # if repeats do not exist:
+                             {'times': 1, 'spatialSeparation' : 0})
+        times = reps['times']
         
-        # random agents velocity (normal distribution)
-        mu    = config["movementSpeed"]["mu"]
-        sigma = config["movementSpeed"]["sigma"] * mu
-        
-        # scale distance covered per simulation step 
-        T = 24*60*60                     # seconds in day
-        dt = config["minSimulationStep"] # seconds in sim step
-        
-        n_steps = T/dt # simulation steps per day
-        
-        for _ in range(team_conf["nAgents"]):
-                  
-            # velocity vector amplitude
-            A = np.random.normal(mu, sigma)
+        for rep in range(times):
             
-            # scale according to the number of simulation steps
-            A = A / n_steps
+            # name each team and its box slightly differently
+            if times > 1:
+                suffix = f"_{rep}"
+            else:
+                suffix = ''
             
-            # random angle (uniform distribution)
-            phi = np.random.uniform(0, 2*np.pi)
+            # build boxes
+            box_name = f"{team_name}{suffix}"
             
-            # polar -> Carthesian
-            dx = A*np.cos(phi)
-            dy = A*np.sin(phi)
+            w = eval(str(team_conf['homeBox'][ 'width']))
+            h = eval(str(team_conf['homeBox']['height']))
             
-            agent = SpatialAgent(idx, box, dx, dy,
-                                 team_conf["conscripted"])
-            agents.append(agent)
+            x = eval(str(team_conf['homeBox']['topLeftPoint']['x']))
+            y = eval(str(team_conf['homeBox']['topLeftPoint']['y']))
             
-            team_agent_ids.append(idx); idx += 1
+            sep = eval(str(reps['spatialSeparation']))
+            
+            x += rep * sep
+            
+            topLeftPoint = {'x': x, 'y': y}
+            
+            box = Box(box_name, w, h, topLeftPoint)
+            
+            boxes[box_name] = box                    
+            
+            # populate agents
+            team_agent_ids = []
+            
+            # random agents velocity (normal distribution)
+            mu    = eval(str(config["movementSpeed"]["mu"]        ))
+            sigma = eval(str(config["movementSpeed"]["sigma"] * mu))
+            
+            # scale distance covered per simulation step 
+            T  = 24*60*60                               # seconds in day
+            dt = eval(str(config["minSimulationStep"])) # seconds in sim step
+            
+            n_steps = T/dt # simulation steps per day
+            
+            for _ in range(team_conf["nAgents"]):
+                      
+                # velocity vector amplitude
+                A = np.random.normal(mu, sigma)
+                
+                # scale according to the number of simulation steps
+                A = A / n_steps
+                
+                # random angle (uniform distribution)
+                phi = np.random.uniform(0, 2*np.pi)
+                
+                # polar -> Carthesian
+                dx = A*np.cos(phi)
+                dy = A*np.sin(phi)
+                
+                agent = SpatialAgent(idx, box, dx, dy,
+                                     team_conf["conscripted"])
+                agents.append(agent)
+                
+                team_agent_ids.append(idx); idx += 1
         
-        if team_conf["conscripted"]:
-            duty = {
-                "on"  : config["daysOnDuty"],
-                "off" : config["daysOffDuty"],
-                "offset"  : team_conf["rotationOffset"]}
-        else:   
-            duty = None
+            if team_conf["conscripted"]:
+                duty = {
+                    "on"      : eval(str(   config[    "daysOnDuty"])),
+                    "off"     : eval(str(   config[   "daysOffDuty"])),
+                    "offset"  : eval(str(team_conf["rotationOffset"]))}
+            else:   
+                duty = None
+            
+            team = Team(f"{team_name}{suffix}", team_agent_ids, duty, box)
+            teams.append(team)
         
-        team = Team(team_name, team_agent_ids, duty, box)
-        teams.append(team)
-        
-    # add common soldier's shop/cafeteria if allowed in the config 
+    # add the soldier's common "Sotilaskoti" inside-the-base shop
     if  config["sotilaskoti"]["allow"]:
         boxes["sotilaskoti"] = Box("sotilaskoti",
                                    **config["sotilaskoti"]["box"])
@@ -317,54 +385,96 @@ def generate_infection_entities(config):
     
     for team_conf in config["teams"].values():
         
-        for _ in range(team_conf["nAgents"]):
-            
-            # make an infection
-            
-            inc_dur = np.random.uniform(
-                config['infection']['incubating']['daysMin'],
-                config['infection']['incubating']['daysMax']
-                )
-            
-            inf_dur = np.random.uniform(
-                config['infection']['acute']['daysMin'],
-                config['infection']['acute']['daysMax']
-                )
-            
-            asympt_p = config['infection']['asymptomatic']['chance']
-            
-            if team_conf['conscripted']:
-                mask_p = config['mask']['coverage']['military']
-                
-                if config['militaryQuarantine']['use']:
-                    quar_p = config['militaryQuarantine']['coverage']
-            else:
-                mask_p = config['mask']['coverage']['civilian']
-                quar_p = 0.0
-            
-            incub_trx  = config['infection'][  'incubating']['contagious']
-            sympt_trx  = config['infection'][       'acute']['contagious']
-            asympt_trx = config['infection']['asymptomatic']['contagious']
-            
-            mask_eff_tx = config['mask']['effectiveness'][   'wearer']
-            mask_eff_rx = config['mask']['effectiveness']['recipient']
-            quar_eff    = config['militaryQuarantine']['effectiveness']
-            
-            infection = Infection(inc_dur, inf_dur,
-                                  asympt_p, mask_p, quar_p,
-                                  incub_trx, sympt_trx, asympt_trx,
-                                  mask_eff_tx, mask_eff_rx, quar_eff)
-            
-            if team_conf['conscripted']:
-                meets_dropout = config['meetingsAvoided']['military']
-            else:
-                meets_dropout = config['meetingsAvoided']['civilian']
-                
-            agent = InfectionAgent(idx, team_conf["conscripted"],
-                                   infection, meets_dropout)
-            agents.append(agent)
+        reps = team_conf.get('repeat',   # if repeats do not exist:
+                             {'times': 1, 'spatialSeparation' : 0})
+        times = eval(str(reps['times']))
         
-            idx += 1
+        for _ in range(times):
+        
+            for _ in range(team_conf["nAgents"]):
+                
+                """
+                Make an infection
+                
+                """
+                inc_dur = np.random.uniform(
+                    eval(str(config['infection']['incubating']['daysMin'])),
+                    eval(str(config['infection']['incubating']['daysMax']))
+                    )
+                
+                psy_dur = np.random.uniform(
+                    eval(str(config['infection']['preSymptomatic']['daysMin'])),
+                    eval(str(config['infection']['preSymptomatic']['daysMax']))
+                    )
+                
+                inf_dur = np.random.uniform(
+                    eval(str(config['infection']['acute']['daysMin'])),
+                    eval(str(config['infection']['acute']['daysMax']))
+                    )
+                
+                asymt_p = config['infection']['asymptomatic']['chance']
+                asymt_p = eval(str(asymt_p))
+                
+                if team_conf['conscripted']:
+                    mask_p = eval(str(config['mask']['coverage']['military']))
+                    
+                    quar = config['militaryQuarantine']
+                    if quar['use']:
+                        quar_x_p = eval(str(quar['chanceToEnterIfExposed' ]))
+                        quar_s_p = eval(str(quar['chenceToEnterIfSymptoms']))
+                        quar_eff = eval(str(quar['effectiveness']))
+                    else:
+                        quar_x_p = quar_s_p = quar_eff = 0.0
+                
+                else:
+                    mask_p = eval(str(config['mask']['coverage']['civilian']))
+                    
+                    quar = config['civilianSelfQuarantine']
+                    if quar['use']:
+                        quar_x_p = eval(str(quar['chanceToEnterIfExposed' ]))
+                        quar_s_p = eval(str(quar['chenceToEnterIfSymptoms']))
+                        quar_eff = eval(str(quar['effectiveness']))
+                    else:
+                        quar_x_p = quar_s_p = quar_eff = 0.0
+                
+                incub_trx = config['infection'][    'incubating']['contagious']
+                psymt_trx = config['infection']['preSymptomatic']['contagious']
+                sympt_trx = config['infection'][         'acute']['contagious']
+                asymt_trx = config['infection'][  'asymptomatic']['contagious']
+                
+                mask_eff_tx = config['mask']['effectiveness'][   'wearer']
+                mask_eff_rx = config['mask']['effectiveness']['recipient']
+                
+                incub_trx = eval(str(incub_trx))
+                psymt_trx = eval(str(psymt_trx))
+                sympt_trx = eval(str(sympt_trx))
+                asymt_trx = eval(str(asymt_trx))
+                
+                mask_eff_tx = eval(str(mask_eff_tx))
+                mask_eff_rx = eval(str(mask_eff_rx))
+                
+                infection = Infection(
+                    inc_dur, psy_dur, inf_dur, asymt_p,
+                    mask_p, quar_s_p, quar_x_p,
+                    incub_trx, psymt_trx, sympt_trx, asymt_trx,
+                    mask_eff_tx, mask_eff_rx, quar_eff)
+                
+                if team_conf['conscripted']:
+                    meets_dropout = config['meetingsAvoided']['military']
+                    meets_dropout = eval(str(meets_dropout))
+                else:
+                    meets_dropout = config['meetingsAvoided']['civilian']
+                    meets_dropout = eval(str(meets_dropout))
+                
+                """
+                Make an agent with above infection
+                
+                """
+                agent = InfectionAgent(idx, team_conf["conscripted"],
+                                       infection, meets_dropout)
+                agents.append(agent)
+            
+                idx += 1
     
     return agents
 

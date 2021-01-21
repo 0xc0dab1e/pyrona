@@ -4,6 +4,10 @@
 This file contains functions relevant only to the visualization.
 """
 
+###
+#  generateMeetings part
+###
+
 import numpy as np
 import OpenGL.GL.shaders
 from OpenGL.GL import GL_VERTEX_SHADER, GL_FRAGMENT_SHADER
@@ -12,7 +16,7 @@ def compile_shader():
     
     VERTEX_SHADER = """
         
-        attribute in vec2 init_pos;
+        attribute vec2 init_pos;
         uniform vec2 dyn_pos;
         
         void main() {
@@ -124,3 +128,124 @@ def generate_agents_verticies(config):
     agents_verts["verticies"][6:9] = mil_templ
     
     return agents_verts
+
+###
+#  outputProbabilities part
+###
+
+import os
+import matplotlib as mpl; mpl.use('Agg')
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+def distribution_plot(fig_n, data, x_label='', y_label='', title='',
+                      fig_name='plot', save_path=''):
+    
+    fig = plt.figure(fig_n)
+    
+    print("plotting Figure "+ str(fig_n) + " . . .")
+    
+    sns.set_theme()
+    sns.set_context("paper")
+    sns.set(rc={'figure.figsize':(5,5)})
+    
+    g = sns.displot(data)
+    
+    fig = g.ax.get_figure()
+    
+    g.set_axis_labels(x_var = x_label, 
+                      y_var = y_label)
+    
+    #g.ax.xaxis.set_major_formatter(mpl.ticker.PercentFormatter(
+    #    1.0, decimals=2))
+    
+    g.ax.xaxis.set_major_formatter(mpl.ticker.LogFormatter(minor_thresholds=(np.inf, np.inf)))
+    
+    plt.title(title)
+
+    plt.tight_layout()
+    
+    fig_path = os.path.join(save_path, fig_name)
+    
+    #fig.set_rasterized(True)
+    #g.ax.set_rasterized(True)
+    #fig.savefig(fig_path +'.tiff', dpi=300)
+    
+    fig.set_rasterized(False)
+    g.ax.set_rasterized(False)
+    fig.savefig(fig_path +'.pdf')
+    
+    plt.close(fig)
+
+
+def linear_plot(fig_n, data, x_column='', y_column='', 
+                xlim=None, 
+                ylim=None, y_ticks_major_minor=None,
+                title='', fig_name='plot', save_path=''):
+    
+    fig = plt.figure(fig_n)
+    
+    print("plotting Figure "+ str(fig_n) + " . . .")
+    
+    sns.set_theme()
+    sns.set_context("paper")
+    sns.set(rc={'figure.figsize':(5,5)})
+    
+    ax = sns.lineplot(data=data, x=x_column, y=y_column, hue="Type")
+    
+    fig = ax.get_figure()
+    
+    ax.set_title(title)
+    
+    fig_name = fig_name
+    
+    ax.set_xlim(  left=0, right=xlim) 
+    ax.set_ylim(bottom=0,   top=ylim) 
+    
+    ytmj = y_ticks_major_minor[0]
+    ytmi = y_ticks_major_minor[1]
+    
+    ax.get_xaxis().set_major_locator(mpl.ticker.MultipleLocator(30.0))
+    ax.get_xaxis().set_minor_locator(mpl.ticker.MultipleLocator( 5.0))
+    ax.get_yaxis().set_major_locator(mpl.ticker.MultipleLocator(ytmj))
+    ax.get_yaxis().set_minor_locator(mpl.ticker.MultipleLocator(ytmi))
+    ax.grid(b=True, which='major', color='w', linewidth=1.0)
+    ax.grid(b=True, which='minor', color='w', linewidth=0.5)
+    
+    plt.tight_layout()
+    
+    fig_path = os.path.join(save_path, fig_name)
+    
+    #fig.set_rasterized(True)
+    #ax.set_rasterized(True)
+    #fig.savefig(fig_path +'.tiff', dpi=300)
+    
+    fig.set_rasterized(False)
+    ax.set_rasterized(False)
+    fig.savefig(fig_path +'.pdf')
+    
+    plt.close(fig)
+    
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
